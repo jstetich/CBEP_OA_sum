@@ -2,7 +2,7 @@
 ## `CascoBayOAData.csv`
 
 This data contains combined data from the UNH-managed OA monitoting station
-at the SMCC Pier, in South Portland. It includes data from 2015 through 2019.
+at the SMCC Pier, in South Portland. It includes data from 2015 through 2018.
 The nominally hourly data series are incomplete because of equipment
 maintenance, malfunctions, and rejection of data during QA/QC.
 
@@ -11,7 +11,7 @@ Column Name     | Contents                               | Units
 yyyy	          | Year of observation                    | Four digit integer
 mm	            | Month of Observation                   | Integer, January = 1
 dd	            | Day (of month) of observation          | Integer
-hh	            | Hour of Observation                    | Integer (0-23)
+hh	            | Hour of Observation                    | Integer (0-23) (UTC)
 temp	          | Temperature                            | Celsius
 sal	            | Salinity                               | PSU (~ PPT)
 co2	            | partial pressure of Carbon dioxide     | uAtm
@@ -20,7 +20,7 @@ ph	            | Measured pH                            | Total pH scale
 omega_a	        | Aragonite saturation (Calculated)      | Unitless
 omega_c	        | calcite saturation  (Calculated)       | Unitless
 TA_calc	        | Total Alkalinity (Calculated)          | uMol/kg  
-datetime	      | Date and time of observation           | yyyy-mm-ddTHH:MM:SSZ
+datetime	      | Date and time of observation           | yyyy-mm-ddTHH:MM:SSZ (UTC)
 doy	            | Day of the Year of the Observation     | integer, 1-366
 do_mgpl	        | Concentration of dissolved oxygen      | mg/l (approximate conversion)
 co2_thermal	    | "Expected" CO2 at observed temperature | uAtm, see below
@@ -95,6 +95,7 @@ not the heights of high tides, although both may prove useful.
 We downloaded the tides data from the NOAA tides API. Details on the API are
 available from the [NOAA web page](https://tidesandcurrents.noaa.gov/api/).
 
+Note that the water levels here are in FEET.
 
 Column Name     | Contents                               | Units                         
 ----------------|----------------------------------------|------
@@ -129,4 +130,3 @@ WDF2   | W Direction of fastest 2-minute wind | degrees
 WDF5   | Direction of fastest 5-second wind   | degrees
 WSF2   | Fastest 2-minute wind speed      | meters per second
 WSF5   | Fastest 5-second wind speed      | meters per second
-

@@ -52,7 +52,7 @@ season_palette = c(cbep_colors()[1],
 # Load Data
 ## Establish Folder References
 ```{r folder_refs}
-sibfldnm <- 'Derived_Data'
+sibfldnm <- 'Data'
 parent   <- dirname(getwd())
 sibling  <- file.path(parent,sibfldnm)
 
@@ -65,14 +65,11 @@ value based on Takahashi et al. 2002. It then collapses that data to daily
 summaries.
 
 > Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain &
-> Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
-> Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
-> sea-air CO2 flux based on climatological surface ocean pCO2, and seasonal
-> biological and temperature effects. Deep Sea Research Part II: Topical Studies
-> in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
-
-(See the "Data_Review_And_Filtering" R Notebook for details on why and how we 
-calculated temperature-corrected pCO2 values.)
+  Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
+  Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
+  sea-air CO2 flux based on climatological surface ocean pCO2, and seasonal
+  biological and temperature effects. Deep Sea Research Part II: Topical Studies
+  in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
 
 ## Read Data
 We add the Month and Season factor here for use in later graphics.
@@ -224,17 +221,17 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
 ```
 
 ## Initial GAMM
-We want to fit an AR1() error term.  We tried using an AR(1) using the whole
+We want to fit an AR(1) error term.  We tried using an AR(1) using the whole
 data set in one block, but that crashed my computer, requiring too much memory.
 
 We also tried running a GAMM with an autocorrelation function set up to depend
 on an hourly time stamp, but it, too took too much memory, and crashed.
 
-The simple autocorrelation function , which looks for correlations with
+The simple autocorrelation function, which looks for correlations with
 successive observations (ignoring any recorded time coordinates), would be
 identical to  one based on a time stamp, IF there were no missing values.
 
-Interestingly, it appears that the corAR1 function, when the parameter 
+Interestingly, it appears that the `corAR1()` function, when the parameter 
 form = NULL,  does not consider missing values at all.
 
 To reduce memory requirements, we can look for autocorrelation structure in 
@@ -248,14 +245,13 @@ rm(all_data)
 rm(m, p, pco2_gam)
 ```
 
-The following take ~ 15 minutes on a lightly loaded machine, and as long as 25
+The following takes ~ 15 minutes on a lightly loaded machine, and as long as 25
 min on a machine with lots of other things going on.
 ```{r cache = TRUE} 
 system.time(pco2_gam2 <- gamm(co2_corr_res ~  s(hh, by = Season, bs='cc', k=6),
                  correlation = corAR1(form = ~ 1 | Season),  # we run out of memory if we don't use a grouping
                  data = diurnal_data))
 ```
-
 
 ```{r summary_pco2gamm_gam}
 summary(pco2_gam2$gam)
@@ -267,7 +263,8 @@ one fifth of the variation in deviations from daily average pCO~2~.
 summary(pco2_gam2$lme)
 ```
 The primary insight from the LME summary is that the AR1 autocorrelation is 
-estimated to be phi =  0.726214.
+estimated to be phi =  0.726214.  We also see a "heavy tailed" distribution
+of residuals.
 
 ###  Model Predictions
 ```{r pco2_gam_predictions}
@@ -282,18 +279,24 @@ newdat <- newdat %>%
 newdat %>%
 ggplot(aes(x=pred, y=pred2)) + 
   geom_point(aes(color=Season)) + 
-  geom_abline(aes(slope = 1,intercept = 0))
+  geom_abline(aes(slope = 1,intercept = 0)) +
+  xlab('Predictions from Model\nwithout Autocorrelation') +
+  ylab('Predictions from Model\nwith Autocorrelation')
 ```
 
-#### But standard Errors are different
+#### But Standard Errors are different
 ```{r}
 newdat %>%
 ggplot(aes(x=se, y=se2)) + geom_point(aes(color=Season)) +
   geom_abline(aes(slope = 1,intercept = 0)) +
-  coord_cartesian(xlim = c(0,1.75), ylim = c(0,2.5)) +
-  xlab('Standard Error\nfrom Model without Autocorrelation') +
+  coord_cartesian(xlim = c(1,1.75), ylim = c(1,2.5)) +
+  xlab('Standard Error\nfrom ') +
   ylab('Standard Error\nfrom Model with Autocorrelation')
 ```
+
+As expected, the GAMM model with autocorrelation estimates standard errors on 
+the order of 1.5 times larger than if the model is fit (incorrectly) without
+accounting for serial autocorelation.
 
 ###  Ribbon Graphic
 These ribbon plots show approximate 95% confidence intervals for the spline fits
@@ -350,9 +353,7 @@ r3 <- with(newdat, Season == 'Summer')
 r4 <- with(newdat, Season == 'Fall')
 ```
 
-
 ```{r example_comparison}
-
 #Example -- using matrix algebra to calculate estimates and standard errors
 # Create a row vector of spline fits
 mm_wsp <- m[r1,] - m[r2,]             # differences between winter and spring subparts of the matrix
@@ -367,12 +368,13 @@ upr <- dif + (qnorm(0.975) * se)
 lwr <- dif - (qnorm(0.975) * se)
 ```
 
-
 ```{r plot_comparison}
 ggplot(data = NULL, aes(x = 0:23)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), fill = cbep_colors()[1], alpha = 0.5) +
   geom_hline(yintercept = 0) +
-  theme_cbep()
+  theme_cbep() +
+  xlab('Time of Day') +
+  ylab(expression (atop(pCO[2*(cor)]~(mu*Atm), "Diff. deviations, Winter vs Spring")))
 ```
 So, apparent differences between winter and spring diurnal patterns are unlikely
 to be due to chance alone.  Although one should be careful with this analysis.
@@ -397,9 +399,10 @@ ggplot(data = NULL, aes(x = 0:23)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), 
               fill = cbep_colors()[1], alpha = 0.5) +
   geom_hline(yintercept = 0) +
-  theme_cbep()
+  theme_cbep() +
+  xlab('Time of Day') +
+  ylab(expression (atop(pCO[2*(cor)]~(mu*Atm), "Diff. deviations, Summer vs Fall")))
 ```
-
 
 # Other Models
 Several other GAMMs models used up all available memory, and could not be run.
@@ -456,6 +459,7 @@ gam.check(ph_gam)
 There appears to be some structure to the residuals, and the residuals are very 
 heavy tailed.  I would not trust standard error or P values much coming out of 
 this analysis.
+
 ### Autocorrelation
 ```{r ph_autocorrelation}
 pacf(resid(ph_gam))
@@ -496,7 +500,7 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
 ```
 
 ## Initial GAMM
-We want to fit an AR1() error term.  We tried using an AR(1) using the whole 
+We want to fit an AR(1) error term.  We tried using an AR(1) using the whole 
 data set in one block, but that crashed my computer, requiring too much memory.
 
 We also tried running a GAMM with an autocorrelation function set up to depend 
@@ -534,13 +538,13 @@ over an hour before crashing.
 summary(ph_gam$gam)
 ```
 Note the very low overall R squared here.  This simple model explains less than 
-one fifth of the variation in deviations from daily average pCO~2~.
+one sixth of the variation in deviations from daily average pCO~2~.
 
 ```{r summary_ph_gamm_lme}
 summary(ph_gam$lme)
 ```
 The primary insight from the LME summary is that the AR1 autocorrelation is 
-estimated to be phi =  0.726214.
+estimated to be phi =  0.726214.  The residuals are very heavy-tailed.
 
 ###  Model Predictions
 ```{r ph_gamm_predictions}
@@ -550,23 +554,29 @@ newdat <- newdat %>%
   mutate(pred2 = p$fit, se2 = p$se.fit)
 ```
 
+
 #### Predictions are nearly identical
 ```{r compare_predictions_ph}
 newdat %>%
 ggplot(aes(x=pred, y=pred2)) + 
   geom_point(aes(color=Season)) + 
-  geom_abline(aes(slope = 1,intercept = 0))
+  geom_abline(aes(slope = 1,intercept = 0)) +
+  xlab('Predictions from Model\nwithout Autocorrelation') +
+  ylab('Predictions from Model\nwith Autocorrelation')
 ```
 
-#### But standard Errors are different
+#### But Standard Errors are different
 ```{r compare_stderr_ph}
 newdat %>%
 ggplot(aes(x=se, y=se2)) + geom_point(aes(color=Season)) +
   geom_abline(aes(slope = 1,intercept = 0)) +
-  coord_cartesian(xlim = c(0,1.75), ylim = c(0,2.5)) +
+  #coord_cartesian(xlim = c(0.00075,0.00175), ylim = c(0.00125, 0.00250)) +
   xlab('Standard Error\nfrom Model without Autocorrelation') +
   ylab('Standard Error\nfrom Model with Autocorrelation')
 ```
+
+Standard errors are about 50% higher for the (preferred)  model with 
+autocorrelation.
 
 ###  Ribbon Graphic
 These ribbon plots show approximate 95% confidence intervals for the spline fits
@@ -625,12 +635,11 @@ r4 <- with(newdat, Season == 'Fall')
 
 
 ```{r example_comparison_ph}
-
 #Example -- using matrix algebra to calculate estimates and standard errors
 # Create a row vector of spline fits
 mm_wsp <- m[r1,] - m[r2,]             # differences between winter and spring subparts of the matrix
 mm_wsp[, ! (c1 | c2)] <- 0            # Set other columns to zero
-dif <- mm_wsp %*% coef(pco2_gam2$gam) # Use Matrix multiplication to estimate
+dif <- mm_wsp %*% coef(ph_gam$gam) # Use Matrix multiplication to estimate
 
 # We work with the normal distribution here, because with our huge time series
 # sample sizes, the difference between the normal distribution and the
@@ -640,15 +649,17 @@ upr <- dif + (qnorm(0.975) * se)
 lwr <- dif - (qnorm(0.975) * se)
 ```
 
-
 ```{r plot_comparison_ph}
 ggplot(data = NULL, aes(x = 0:23)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr), 
               fill = cbep_colors()[1], alpha = 0.5) +
   geom_hline(yintercept = 0) +
-  theme_cbep()
+  theme_cbep() +
+  xlab('Time of Day') +
+  ylab("pH difference in magnitude \nof hourly deviations\nWinter vs Spring")
 ```
-So, apparent differences between winter and spring diurnal patterns are unlikely
+
+So, apparent differences between winter and spring diurnal patterns are likely
 to be due to chance alone.  Although one should be careful with this analysis.
 This approach implicitly makes multiple hourly comparisons, thus potentially
 inflating apparent statistical significance.
@@ -661,7 +672,7 @@ patterns are clearly distinct.
 ```{r second_comparison_ph}
 mm_suf <- m[r3,] - m[r4,]
 mm_suf[, ! (c3 | c4)] <- 0
-dif <- mm_wsp %*% coef(pco2_gam2$gam)  # Use Matrix multiplication to estimate
+dif <- mm_wsp %*% coef(ph_gam$gam)  # Use Matrix multiplication to estimate
 
 se <- sqrt(rowSums((mm_suf %*% vcov(pco2_gam2$gam, 
                                     unconditional=TRUE)) * mm_suf))
@@ -673,3 +684,7 @@ ggplot(data = NULL, aes(x = 0:23)) +
   geom_hline(yintercept = 0) +
   theme_cbep()
 ```
+
+Again, differences between seasons in diurnal differences in pH are likely only 
+due to chance.
+
