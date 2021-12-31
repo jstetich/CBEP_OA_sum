@@ -352,7 +352,6 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
 
 ``` r
 ggsave('figures/pco2_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/pco2_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
 # pH Graphics by Season
@@ -431,7 +430,6 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
 
 ``` r
 ggsave('figures/ph_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/ph_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
 # Omega Graphics by Season

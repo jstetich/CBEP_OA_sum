@@ -305,27 +305,6 @@ ggsave('figures/pco2_tidal_seasons.pdf',
        device = cairo_pdf, width = 4, height = 4)
 ```
 
-### Alternate Graphic with Lines
-```{r co2_lines, fig.width = 4, fig.height = 4}
-ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
-  
-  theme_cbep(base_size= 12) +
-  theme(legend.key.width = unit(0.25,"in"),
-        legend.text      = element_text(size = 8)) +
-  
-  scale_x_continuous(breaks = c(0, 180, 360, 540, 720),
-                     labels = c(0, 3, 6, 9, 12)) +
-  
-  scale_color_manual(values = season_palette, name = '') +
-  
-  xlab('Hours Since High Tide') +
-  ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), 
-                        Difference~From~Tide~Cycle~Average)))
-
-ggsave('figures/pco2_tidal_seasons_lines.pdf', device = cairo_pdf, width = 4, height = 4)
-```
-
 ## pH GAMM Model with Autocorrelation
 For some reason, the pH models run considerably faster, perhaps because of more missing data, making the data set smaller.
 ```{r gamm_ph, cache = TRUE} 
@@ -369,25 +348,3 @@ ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) +
 ggsave('figures/ph_tidal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
 #ggsave('figures/ph_tidal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
-
-### Alternate Graphic with Lines
-```{r ph_lines, fig.width = 4, fig.height = 4}
-ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
-  
-  theme_cbep(base_size= 12) +
-  theme(legend.key.width = unit(0.25,"in"),
-        legend.text      = element_text(size = 8)) +
-  
-  scale_x_continuous(breaks = c(0, 180, 360, 540, 720),
-                     labels = c(0, 3, 6, 9, 12)) +
-  
-  scale_color_manual(values = season_palette, name = '') +
-  
-  xlab('Hours Since High Tide') +
-  ylab(expression (atop(pH, Difference~From~Tide~Cycle~Average)))
-
-ggsave('figures/ph_tidal_seasons_lines.pdf', 
-       device = cairo_pdf, width = 4, height = 4)
-```
-

@@ -49,6 +49,7 @@ theme_set(theme_cbep())
 
 # Color Palette For Seasonal Displays
 This is just a list, not a function like cbep_colors().
+
 ```{r seasonal_palette}
 season_palette = c(cbep_colors()[1],
                     cbep_colors()[4],
@@ -251,7 +252,6 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
   ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), Difference~From~Daily~Average)))
 
 ggsave('figures/pco2_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/pco2_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
 # pH Graphics by Season
@@ -288,7 +288,6 @@ system.time(ph_gam <- gamm(ph_res ~  s(hh, by = Season, bs='cc', k=6),
                  data = diurnal_data))
 ```
 
-
 ## Generate Predictions from the Model
 ```{r predict_ph}
 newdat <- expand.grid(hh = seq(0, 23),
@@ -301,6 +300,7 @@ newdat <- newdat %>%
 ## Create Ribbon Graphic
 The ribbon plots show approximate 95% confidence intervals for the GAMM fit by
 season.
+
 ```{r ribbon_ph, fig.width = 4, fig.height = 4}
 ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
   geom_ribbon(aes(ymin = pred-(1.96*se),
@@ -316,7 +316,6 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
   xlab('Hour of Day') +
   ylab(expression (atop(pH, Difference~From~Daily~Average)))
 ggsave('figures/ph_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/ph_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
 # Omega Graphics by Season

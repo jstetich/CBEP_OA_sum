@@ -24,15 +24,11 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership
         -   [Generate Predictions from the
             Model](#generate-predictions-from-the-model)
         -   [Create Ribbon Graphic](#create-ribbon-graphic)
-        -   [Alternate Graphic with
-            Lines](#alternate-graphic-with-lines)
     -   [pH GAMM Model with
         Autocorrelation](#ph-gamm-model-with-autocorrelation)
         -   [Generate Predictions from the
             Model](#generate-predictions-from-the-model-1)
         -   [Create Ribbon Graphic](#create-ribbon-graphic-1)
-        -   [Alternate Graphic with
-            Lines](#alternate-graphic-with-lines-1)
 
 <img
     src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
@@ -395,32 +391,6 @@ ggsave('figures/pco2_tidal_seasons.pdf',
        device = cairo_pdf, width = 4, height = 4)
 ```
 
-### Alternate Graphic with Lines
-
-``` r
-ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
-  
-  theme_cbep(base_size= 12) +
-  theme(legend.key.width = unit(0.25,"in"),
-        legend.text      = element_text(size = 8)) +
-  
-  scale_x_continuous(breaks = c(0, 180, 360, 540, 720),
-                     labels = c(0, 3, 6, 9, 12)) +
-  
-  scale_color_manual(values = season_palette, name = '') +
-  
-  xlab('Hours Since High Tide') +
-  ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), 
-                        Difference~From~Tide~Cycle~Average)))
-```
-
-![](Revised_Graphics_Tidal_files/figure-gfm/co2_lines-1.png)<!-- -->
-
-``` r
-ggsave('figures/pco2_tidal_seasons_lines.pdf', device = cairo_pdf, width = 4, height = 4)
-```
-
 ## pH GAMM Model with Autocorrelation
 
 For some reason, the pH models run considerably faster, perhaps because
@@ -476,30 +446,4 @@ ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) +
 ``` r
 ggsave('figures/ph_tidal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
 #ggsave('figures/ph_tidal_seasons.png', type = 'cairo', width = 4, height = 4)
-```
-
-### Alternate Graphic with Lines
-
-``` r
-ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
-  
-  theme_cbep(base_size= 12) +
-  theme(legend.key.width = unit(0.25,"in"),
-        legend.text      = element_text(size = 8)) +
-  
-  scale_x_continuous(breaks = c(0, 180, 360, 540, 720),
-                     labels = c(0, 3, 6, 9, 12)) +
-  
-  scale_color_manual(values = season_palette, name = '') +
-  
-  xlab('Hours Since High Tide') +
-  ylab(expression (atop(pH, Difference~From~Tide~Cycle~Average)))
-```
-
-![](Revised_Graphics_Tidal_files/figure-gfm/ph_lines-1.png)<!-- -->
-
-``` r
-ggsave('figures/ph_tidal_seasons_lines.pdf', 
-       device = cairo_pdf, width = 4, height = 4)
 ```
