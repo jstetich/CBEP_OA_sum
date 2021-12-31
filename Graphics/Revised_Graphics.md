@@ -1,38 +1,78 @@
----
-title: "Analysis of Casco Bay OA data through 2018 -- Revised Graphics"
-author: "Curtis C. Bohlen, Casco Bay Estuary Partnership"
-output:
-  github_document:
-    toc: true
-    toc_depth: 3
-    fig_width: 5
-    fig_height: 4
----
+Analysis of Casco Bay OA data through 2018 – Revised Graphics
+================
+Curtis C. Bohlen, Casco Bay Estuary Partnership
+
+-   [Introduction](#introduction)
+-   [Load Libraries](#load-libraries)
+-   [Generate Color Palettes](#generate-color-palettes)
+    -   [Monthly](#monthly)
+    -   [Seasonal](#seasonal)
+-   [Constants for Axis Labels](#constants-for-axis-labels)
+-   [Load Data](#load-data)
+    -   [Establish Folder References](#establish-folder-references)
+    -   [Read Data](#read-data)
+-   [Seasonal Profiles](#seasonal-profiles)
+    -   [Temperature Corrected
+        pCO<sub>2</sub>](#temperature-corrected-pco2)
+    -   [pH](#ph)
+    -   [Aragonite Saturation State](#aragonite-saturation-state)
+-   [PH by Temperature](#ph-by-temperature)
+    -   [Monthly](#monthly-1)
+    -   [Seasonal](#seasonal-1)
+-   [pCO<sub>2</sub> by Temperature](#pco2-by-temperature)
+    -   [Monthly](#monthly-2)
+    -   [Seasonal](#seasonal-2)
 
 <img
     src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
     style="position:absolute;top:10px;right:50px;" />
 
-
 # Introduction
-This notebook and related notebooks document exploratory data analysis of data
-derived from a multi-year deployment of ocean acidification monitoring equipment
-at the Southern Maine Community College pier, in South Portland.
 
-The monitoring set up was designed and operated by Joe Kelly, of UNH and his
-colleagues, on behalf of the Casco Bay Estuary Partnership.  This was one of the
-first long-term OA monitoring facilities in the northeast, and was intended to
-test available technologies as well as gain operational experience working with
-acidification monitoring.
+This notebook and related notebooks document exploratory data analysis
+of data derived from a multi-year deployment of ocean acidification
+monitoring equipment at the Southern Maine Community College pier, in
+South Portland.
 
-In this Notebook, we develop the primary graphics used to examine acidification
-in Casco Bay Estuary partnership's 2020 State of the Bay report.
+The monitoring set up was designed and operated by Joe Kelly, of UNH and
+his colleagues, on behalf of the Casco Bay Estuary Partnership. This was
+one of the first long-term OA monitoring facilities in the northeast,
+and was intended to test available technologies as well as gain
+operational experience working with acidification monitoring.
+
+In this Notebook, we develop the primary graphics used to examine
+acidification in Casco Bay Estuary partnership’s 2020 State of the Bay
+report.
 
 # Load Libraries
-```{r load_libraries}
-library(tidyverse)
-library(lubridate)
 
+``` r
+library(tidyverse)
+```
+
+    ## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+
+    ## v ggplot2 3.3.5     v purrr   0.3.4
+    ## v tibble  3.1.6     v dplyr   1.0.7
+    ## v tidyr   1.1.4     v stringr 1.4.0
+    ## v readr   2.1.1     v forcats 0.5.1
+
+    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+``` r
+library(lubridate)
+```
+
+    ## 
+    ## Attaching package: 'lubridate'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     date, intersect, setdiff, union
+
+``` r
 library(CBEPgraphics)
 load_cbep_fonts()
 
@@ -40,24 +80,27 @@ library(RColorBrewer)
 ```
 
 # Generate Color Palettes
+
 ## Monthly
-To display data by months in complex graphics, we want a 12 item sequential
-color palette that's color-blind and reproduction friendly.
 
-The rColorBrewer colorRampPalette() function creates a FUNCTION that takes the
-number of colors, and returns a suitable color ramp, based on another (usually
-shorter) color ramp.  Note getPalette is a FUNCTION.  We'll use this function
-later to generate the colors we want on the fly.
+To display data by months in complex graphics, we want a 12 item
+sequential color palette that’s color-blind and reproduction friendly.
 
-```{r palette}
+The rColorBrewer colorRampPalette() function creates a FUNCTION that
+takes the number of colors, and returns a suitable color ramp, based on
+another (usually shorter) color ramp. Note getPalette is a FUNCTION.
+We’ll use this function later to generate the colors we want on the fly.
+
+``` r
 # generates a palette function from an existing color ramp
 getPalette = colorRampPalette(brewer.pal(9, "YlGnBu")[2:9])  
 ```
 
 ## Seasonal
-This is just a list, not a function like cbep_colors().
 
-```{r}
+This is just a list, not a function like cbep\_colors().
+
+``` r
 season_palette = c(cbep_colors()[1],
                     cbep_colors()[4],
                     cbep_colors()[2],
@@ -65,14 +108,17 @@ season_palette = c(cbep_colors()[1],
 ```
 
 # Constants for Axis Labels
-```{r axis_setup}
+
+``` r
 monthlengths <-  c(31,28,31, 30,31,30,31,31,30,31,30,31)
 cutpoints    <- c(0, cumsum(monthlengths)[1:12])[1:12]
 ```
 
 # Load Data
+
 ## Establish Folder References
-```{r folder_refs}
+
+``` r
 sibfldnm <- 'Data'
 parent   <- dirname(getwd())
 sibling  <- file.path(parent,sibfldnm)
@@ -83,22 +129,24 @@ fpath <- file.path(sibling,fn)
 dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ```
 
-The following loads existing data, including a "temperature corrected" pCO~2~
-value based on Takehashi et al. 2002. It then collapses that data to daily
-summaries.
+The following loads existing data, including a “temperature corrected”
+pCO<sub>2</sub> value based on Takehashi et al. 2002. It then collapses
+that data to daily summaries.
 
-> Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain &
-> Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
-> Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
-> sea-air CO2 flux based on climatological surface ocean pCO~2~, and seasonal
-> biological and temperature effects. Deep Sea Research Part II: Topical Studies
-> in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
+> Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain
+> & Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof,
+> Rik & Feely, Richard & Chris, Sabine & Olafsson, Jon & Nojiri,
+> Yukihiro. (2002). Global sea-air CO2 flux based on climatological
+> surface ocean pCO<sub>2</sub>, and seasonal biological and temperature
+> effects. Deep Sea Research Part II: Topical Studies in Oceanography.
+> 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
 
 ## Read Data
-Note this version adjusts dates and times for Eastern Standard Time. It also
-assigns each observation to a season based on month of the year.
 
-```{r load_data} 
+Note this version adjusts dates and times for Eastern Standard Time. It
+also assigns each observation to a season based on month of the year.
+
+``` r
 all_data <- read_csv(fpath,
                      col_types = cols(dd = col_integer(), 
                                       doy = col_integer(),
@@ -131,19 +179,19 @@ all_data <- read_csv(fpath,
                                 `11` = 'Fall',
                                 `12` = 'Winter'
                                 ))
-
 ```
 
-
 # Seasonal Profiles
+
 Only two changes here compared to the draft graphics:
 
-1.  The colors have been reordered to simplify making the colors correspond to
-    the same years as in the FOCB graphics and
+1.  The colors have been reordered to simplify making the colors
+    correspond to the same years as in the FOCB graphics and
 2.  The Y axis Legend has been simplified slightly.
 
-## Temperature Corrected pCO~2~
-```{r pc02_by_doy,fig.width = 5, fig.height = 4}
+## Temperature Corrected pCO<sub>2</sub>
+
+``` r
 plt <- ggplot(all_data, aes(doy, co2_corr)) +
   geom_point(aes(color = factor(yyyy)), alpha = 0.1) +
   
@@ -156,13 +204,22 @@ plt <- ggplot(all_data, aes(doy, co2_corr)) +
   theme_cbep(base_size = 14) +
   theme(axis.text.x=element_text(angle=90, vjust = 1.25))
 plt
+```
+
+    ## Warning: Removed 6170 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/pc02_by_doy-1.png)<!-- -->
+
+``` r
 ggsave('figures/pco2Seasonal_cbep_2.pdf', 
        device = cairo_pdf,width = 4, height = 4)
 ```
 
+    ## Warning: Removed 6170 rows containing missing values (geom_point).
 
 ## pH
-```{r ph_by_doy,fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(doy, ph)) +
   geom_point(aes(color = factor(yyyy)),alpha = 0.1) +
   xlab('') +
@@ -177,17 +234,36 @@ plt <- ggplot(all_data, aes(doy, ph)) +
   theme_cbep(base_size = 14) +
   theme(axis.text.x=element_text(angle=90, vjust = 1.25))
 plt
+```
+
+    ## Warning: Removed 11854 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/ph_by_doy-1.png)<!-- -->
+
+``` r
 ggsave('figures/phSeasonal_cbep.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
-```{r}
+    ## Warning: Removed 11854 rows containing missing values (geom_point).
+
+``` r
 names(all_data)
+```
+
+    ##  [1] "datetime" "temp"     "sal"      "do"       "ph"       "co2"     
+    ##  [7] "co2_corr" "omega_a"  "stdtime"  "yyyy"     "mm"       "dd"      
+    ## [13] "doy"      "hh"       "Month"    "Season"
+
+``` r
 unlist(map(names(all_data), nchar))
 ```
 
+    ##  [1] 8 4 3 2 2 3 8 7 7 4 2 2 3 2 5 6
+
 ## Aragonite Saturation State
-```{r omega_by_doy, fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(doy, omega_a)) +
   geom_point(aes(color = factor(yyyy)), alpha = 0.1) +
   
@@ -211,14 +287,24 @@ plt <- ggplot(all_data, aes(doy, omega_a)) +
   theme(axis.text.x=element_text(angle=90, vjust = 1.25))
   
 plt
+```
+
+    ## Warning: Removed 17567 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/omega_by_doy-1.png)<!-- -->
+
+``` r
 ggsave('figures/omegaSeasonal_cbep.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
- 
+    ## Warning: Removed 17567 rows containing missing values (geom_point).
+
 # PH by Temperature
+
 ## Monthly
-```{r ph_by_temp_gradient, fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(temp, ph)) + 
   geom_point(aes(color = factor(mm)), alpha = 0.4, size = 0.5) +
   scale_color_manual(values = getPalette(12), name = 'Month',
@@ -234,8 +320,13 @@ plt <- ggplot(all_data, aes(temp, ph)) +
 plt
 ```
 
+    ## Warning: Removed 11919 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/ph_by_temp_gradient-1.png)<!-- -->
+
 ## Seasonal
-```{r ph_by_temp_seasonal, fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(temp, ph)) + 
   geom_point(aes(color = Season), alpha = 0.4, size = 0.5) +
   scale_color_manual(values = season_palette, name = '') +
@@ -248,13 +339,24 @@ plt <- ggplot(all_data, aes(temp, ph)) +
 
   theme_cbep(base_size = 14)
 plt
+```
+
+    ## Warning: Removed 11919 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/ph_by_temp_seasonal-1.png)<!-- -->
+
+``` r
 ggsave('figures/phbytemp_seasonal.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
-# pCO~2~ by Temperature 
+    ## Warning: Removed 11919 rows containing missing values (geom_point).
+
+# pCO<sub>2</sub> by Temperature
+
 ## Monthly
-```{r pco2_by_temp_monthly, fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(temp, co2_corr)) +
   geom_point(aes(color = factor(mm)), alpha = 0.4, size=0.5) +
   
@@ -270,12 +372,22 @@ plt <- ggplot(all_data, aes(temp, co2_corr)) +
   theme_cbep(base_size = 14)
   
 plt
+```
+
+    ## Warning: Removed 6170 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/pco2_by_temp_monthly-1.png)<!-- -->
+
+``` r
 ggsave('figures/pco2bytemp_monthly.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
+    ## Warning: Removed 6170 rows containing missing values (geom_point).
+
 ## Seasonal
-```{r pco2_by_temp_seasonal, fig.width = 5, fig.height = 4}
+
+``` r
 plt <- ggplot(all_data, aes(temp, co2_corr)) +
   geom_point(aes(color = Season), alpha = 0.4, size=0.5) +
   
@@ -290,7 +402,15 @@ plt <- ggplot(all_data, aes(temp, co2_corr)) +
   theme_cbep(base_size = 14)
   
 plt
+```
+
+    ## Warning: Removed 6170 rows containing missing values (geom_point).
+
+![](Revised_Graphics_files/figure-gfm/pco2_by_temp_seasonal-1.png)<!-- -->
+
+``` r
 ggsave('figures/pco2bytemp_seasonal.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
+    ## Warning: Removed 6170 rows containing missing values (geom_point).

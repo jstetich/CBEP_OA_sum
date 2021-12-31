@@ -14,7 +14,7 @@ output:
 
 # WARNING: This Notebook Takes a Long Time to Run
 Several complex models take between five and fifteen minutes each to run, so
-"RUN All" OR "knit" may take twenty minutes or more to run.  The code is
+"RUN All" OR "knit" may take twenty minutes or more.  The code is
 designed to "cache" results after it has been "knit" once, so that is
 principally a problem if you run the code in this notebook directly, change the
 data or model specifications between "knits", or if you delete the cache files
@@ -36,7 +36,6 @@ pH, for Casco Bay Estuary partnership's 2020 State of the Bay report.  Companion
 R Notebooks in the Analysis Folder look in greater detail at model selection and
 uncertainty.
 
-
 # Load Libraries
 ```{r load_libraries}
 library(tidyverse)  # includes readr, readxl and lubridate
@@ -47,6 +46,7 @@ library(CBEPgraphics)
 load_cbep_fonts()
 theme_set(theme_cbep())
 ```
+
 # Color Palette For Seasonal Displays
 This is just a list, not a function like cbep_colors().
 ```{r seasonal_palette}
@@ -62,18 +62,15 @@ The following code loads data already cleaned and reorganized, via the
 corrected" pCO2 value based on Takehashi et al. 2002.
 
 > Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain &
-> Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
-> Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
-> sea-air CO2 flux based on climatological surface ocean pCO2, and seasonal
-> biological and temperature effects. Deep Sea Research Part II: Topical Studies
-> in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
-
-(See the "Data_Review_And_Filtering" R Notebook for details on why and how we
-calculated temperature-corrected pCO2 values.)
-
+  Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
+  Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
+  sea-air CO2 flux based on climatological surface ocean pCO2, and seasonal
+  biological and temperature effects. Deep Sea Research Part II: Topical Studies
+  in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
+  
 ## Establish Folder References
 ```{r folder_refs}
-sibfldnm <- 'Derived_Data'
+sibfldnm <- 'Data'
 parent   <- dirname(getwd())
 sibling  <- file.path(parent,sibfldnm)
 
@@ -169,6 +166,7 @@ UTC, while local time is in daylight savings, so should be four hours behind.
 
 The first time stamp in the CSV file ('CascoBayOAData.csv') is 2015-4-23	15:00
 (in UTC).
+
 ```{r small_test}
 knitr::kable(all_data %>%
   select(datetime, stdtime, localtime) %>% 
@@ -188,6 +186,7 @@ Note that:
 # pCO~2~ Graphics (Temperature Corrected) by Season
 ## Calculate pCO~2~ Deviations
 For temperature-corrected pCO~2~.
+
 ```{r hourly_deviations_co2}
 diurnal_data <- all_data %>%
   group_by(yyyy, mm, dd) %>%
@@ -215,7 +214,8 @@ diurnal_data <- all_data %>%
 ## Run the GAMM
 The following takes ~ 8 minutes on a lightly loaded computer (Windows 10, 64
 bit, Intel i7 processor, 2.4 GHz), and as long as 25 minutes when the machine
-had lots of other things going on.  
+had lots of other things going on.
+
 ```{r gamm_pco2, cache = TRUE} 
 system.time(pco2_gam <- gamm(co2_corr_res ~  s(hh, by = Season, bs='cc', k=6),
                  correlation = corAR1(form = ~ 1 | Season),  # we run out of memory if we don't use a grouping
@@ -234,6 +234,7 @@ newdat <- newdat %>%
 ## Create Ribbon Graphic
 The ribbon plot shows approximate 95% confidence intervals for the GAMM fits by
 season.
+
 ```{r co2_ribbon, fig.width = 4, fig.height = 4}
 ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
   geom_ribbon(aes(ymin = pred-(1.96*se),
@@ -252,26 +253,6 @@ ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
 ggsave('figures/pco2_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
 #ggsave('figures/pco2_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
-
-## Alternate Graphic with Lines
-```{r co2_lines, fig.width = 4, fig.height = 4}
-ggplot(newdat, aes(x=hh, y=pred)) + 
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
-  
-  theme_cbep(base_size= 12) +
-  theme(legend.key.width = unit(0.25,"in"),
-        legend.text      = element_text(size = 8)) +
-  scale_color_manual(values = season_palette, name = '') +
-  
-  xlab('Hour of Day') +
-  ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), Difference~From~Daily~Average)))
-
-ggsave('figures/pco2_diurnal_seasons_lines.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/pco2_diurnal_seasons_Lines.png', type = 'cairo', width = 4, height = 4)
-
-```
-
-
 
 # pH Graphics by Season
 ## Calculate pH Deviations  
@@ -338,22 +319,66 @@ ggsave('figures/ph_diurnal_seasons.pdf', device = cairo_pdf, width = 4, height =
 #ggsave('figures/ph_diurnal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
+# Omega Graphics by Season
+## Calculate Omega Deviations
+For temperature-corrected pCO~2~.
+```{r hourly_deviations_omega}
+diurnal_data <- all_data %>%
+  group_by(yyyy, mm, dd) %>%
+  # Calculate sample sizes for each day.
+  mutate(omega_a_n      = sum(! is.na(omega_a))) %>%
+  
+  # Calculate centered but not scaled values, day by day.
+  mutate(omega_a_res      = scale(omega_a, scale = FALSE)) %>%
+  ungroup(yyyy, mm, dd) %>%
+  
+  # Replace data from any days with less than 20 hours of data with NA
+  mutate(omega_a_res      = ifelse(omega_a_n>=20, omega_a_res, NA)) %>%
 
-## Alternate Graphic with Lines
-```{r lines_ph, fig.width = 4, fig.height = 4}
+  # Delete unnecessary data to save space
+  select(-contains('_n')) %>%
+  select(c(stdtime, yyyy, Season, Month, dd, hh, omega_a_res))
+```
+
+## Run the GAMM
+The following takes ~ 8 minutes on a lightly loaded computer (Windows 10, 64
+bit, Intel i7 processor, 2.4 GHz), and as long as 25 minutes when the machine
+had lots of other things going on.  
+
+```{r gamm_omega, cache = TRUE} 
+system.time(omega_gam <- gamm(omega_a_res ~  s(hh, by = Season, bs='cc', k=6),
+                 correlation = corAR1(form = ~ 1 | Season),  # we run out of memory if we don't use a grouping
+                 data = diurnal_data))
+```
+
+## Generate Predictions from the Model
+```{r predicts_omega}
+newdat <- expand.grid(hh = seq(0, 23),
+                    Season = c('Winter', 'Spring', 'Summer', 'Fall'))
+p <- predict(omega_gam$gam, newdata = newdat, se.fit=TRUE)
+newdat <- newdat %>%
+  mutate(pred = p$fit, se = p$se.fit)
+```
+
+## Create Ribbon Graphic
+The ribbon plot shows approximate 95% confidence intervals for the GAMM fits by
+season.
+
+```{r omega_ribbon, fig.width = 4, fig.height = 4}
 ggplot(newdat, aes(x=hh, y=pred, color = Season)) + #geom_line() +
-  geom_line(aes(y = pred, color = Season), lwd = 1.5) +
+  geom_ribbon(aes(ymin = pred-(1.96*se),
+                  ymax = pred+(1.96*se),
+                  fill = Season), alpha = 0.5,
+              color = NA) +
   
   theme_cbep(base_size= 12) +
   theme(legend.key.width = unit(0.25,"in"),
         legend.text      = element_text(size = 8)) +
-  scale_color_manual(values = season_palette, name = '') +
+  scale_fill_manual(values = season_palette, name = '') +
   
   xlab('Hour of Day') +
-  ylab(expression (atop(pH, Difference~From~Daily~Average)))
-ggsave('figures/ph_diurnal_seasons_lines.pdf', device = cairo_pdf, width = 4, height = 4)
-#ggsave('figures/ph_diurnal_seasons_Lines.png', type = 'cairo', width = 4, height = 4)
+  ylab(expression(atop(Omega[a],Difference~From~Daily~Average)))
 
-```
-
-
+ggsave('figures/omega_diurnal_seasons.pdf', device = cairo_pdf,
+   width = 4, height = 4)
+``` 

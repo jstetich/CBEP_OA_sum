@@ -1,54 +1,123 @@
----
-title: "Analysis of Casco Bay OA data through 2018 -- Revised Tidal Graphics"
-author: "Curtis C. Bohlen, Casco Bay Estuary Partnership"
-output:
-  github_document:
-    toc: true
-    fig_width: 7
-    fig_height: 5
----
+Analysis of Casco Bay OA data through 2018 – Revised Tidal Graphics
+================
+Curtis C. Bohlen, Casco Bay Estuary Partnership
+
+-   [WARNING: This Notebook Takes a Long Time to
+    Run](#warning-this-notebook-takes-a-long-time-to-run)
+-   [Introduction](#introduction)
+-   [Load Libraries](#load-libraries)
+    -   [Generate color palette](#generate-color-palette)
+-   [Load Data](#load-data)
+    -   [Establish Folder References](#establish-folder-references)
+    -   [Read Data](#read-data)
+-   [Prepare Tidal Data](#prepare-tidal-data)
+    -   [Load Tides Data](#load-tides-data)
+    -   [Data Correction](#data-correction)
+    -   [Daily Amplitudes](#daily-amplitudes)
+    -   [Calculate the Time Since High
+        Tide](#calculate-the-time-since-high-tide)
+    -   [Deviations From Average Within a Tidal
+        Cycle](#deviations-from-average-within-a-tidal-cycle)
+-   [Tidal Graphics](#tidal-graphics)
+    -   [PCO<sub>2</sub> GAMM Model with
+        Autocorrelation](#pco2-gamm-model-with-autocorrelation)
+        -   [Generate Predictions from the
+            Model](#generate-predictions-from-the-model)
+        -   [Create Ribbon Graphic](#create-ribbon-graphic)
+        -   [Alternate Graphic with
+            Lines](#alternate-graphic-with-lines)
+    -   [pH GAMM Model with
+        Autocorrelation](#ph-gamm-model-with-autocorrelation)
+        -   [Generate Predictions from the
+            Model](#generate-predictions-from-the-model-1)
+        -   [Create Ribbon Graphic](#create-ribbon-graphic-1)
+        -   [Alternate Graphic with
+            Lines](#alternate-graphic-with-lines-1)
 
 <img
     src="https://www.cascobayestuary.org/wp-content/uploads/2014/04/logo_sm.jpg"
     style="position:absolute;top:10px;right:50px;" />
 
 # WARNING: This Notebook Takes a Long Time to Run
-Several complex models take between five and fifteen minutes each to run, so
-"RUN All" OR "knit" may take twenty minutes or more to run.  The code is
-designed to "cache" results after it has been "knit" once, so that is
-principally a problem if you run the code in this notebook directly, change the
-data or model specifications between "knits", or if you delete the cache files
-from your computer.
+
+Several complex models take between five and fifteen minutes each to
+run, so “RUN All” OR “knit” may take twenty minutes or more to run. The
+code is designed to “cache” results after it has been “knit” once, so
+that is principally a problem if you run the code in this notebook
+directly, change the data or model specifications between “knits”, or if
+you delete the cache files from your computer.
 
 # Introduction
-This notebook and related notebooks document analysis of data derived from a
-multi-year deployment of ocean acidification monitoring equipment at the
-Southern Maine Community College pier, in South Portland.
 
-The monitoring set up was designed and operated by Joe Kelly, of UNH and his
-colleagues, on behalf of the Casco Bay Estuary Partnership.  This was one of the
-first long-term OA monitoring facilities in the northeast, and was intended to
-test available technologies as well as gain operational experience working with
-acidification monitoring.
+This notebook and related notebooks document analysis of data derived
+from a multi-year deployment of ocean acidification monitoring equipment
+at the Southern Maine Community College pier, in South Portland.
 
-In this Notebook, we develop additional graphics used to examine acidification 
-in Casco Bay Estuary partnership's 2020 State of the Bay report.
+The monitoring set up was designed and operated by Joe Kelly, of UNH and
+his colleagues, on behalf of the Casco Bay Estuary Partnership. This was
+one of the first long-term OA monitoring facilities in the northeast,
+and was intended to test available technologies as well as gain
+operational experience working with acidification monitoring.
+
+In this Notebook, we develop additional graphics used to examine
+acidification in Casco Bay Estuary partnership’s 2020 State of the Bay
+report.
 
 # Load Libraries
-```{r load_libraries}
-library(tidyverse)  # includes readr, readxl
-library(lubridate)
-library(mgcv)
 
+``` r
+library(tidyverse)  # includes readr, readxl
+```
+
+    ## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+
+    ## v ggplot2 3.3.5     v purrr   0.3.4
+    ## v tibble  3.1.6     v dplyr   1.0.7
+    ## v tidyr   1.1.4     v stringr 1.4.0
+    ## v readr   2.1.1     v forcats 0.5.1
+
+    ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+``` r
+library(lubridate)
+```
+
+    ## 
+    ## Attaching package: 'lubridate'
+
+    ## The following objects are masked from 'package:base':
+    ## 
+    ##     date, intersect, setdiff, union
+
+``` r
+library(mgcv)
+```
+
+    ## Loading required package: nlme
+
+    ## 
+    ## Attaching package: 'nlme'
+
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     collapse
+
+    ## This is mgcv 1.8-38. For overview type 'help("mgcv-package")'.
+
+``` r
 library(CBEPgraphics)
 load_cbep_fonts()
 theme_set(theme_cbep())
-
 ```
+
 ## Generate color palette
- For Seasonal Displays
-This is just a list, not function like cbeo_colors().
-```{r season_colors}
+
+For Seasonal Displays This is just a list, not function like
+cbeo\_colors().
+
+``` r
 season_palette = c(cbep_colors()[1],
                     cbep_colors()[4],
                     cbep_colors()[2],
@@ -56,8 +125,10 @@ season_palette = c(cbep_colors()[1],
 ```
 
 # Load Data
+
 ## Establish Folder References
-```{r folder_refs}
+
+``` r
 sibfldnm <- 'Data'
 parent   <- dirname(getwd())
 sibling  <- file.path(parent,sibfldnm)
@@ -68,26 +139,27 @@ fpath <- file.path(sibling,fn)
 dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ```
 
-The following loads existing data, including a "temperature corrected" pCO2 
-value based on Takehashi et al. 2002. It then collapses that data to daily 
-summaries.
+The following loads existing data, including a “temperature corrected”
+pCO2 value based on Takehashi et al. 2002. It then collapses that data
+to daily summaries.
 
-> Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain &
-  Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof, Rik & Feely,
-  Richard & Chris, Sabine & Olafsson, Jon & Nojiri, Yukihiro. (2002). Global
-  sea-air CO2 flux based on climatological surface ocean pCO2, and seasonal
-  biological and temperature effects. Deep Sea Research Part II: Topical Studies
-  in Oceanography. 49. 1601-1622. 10.1016/S0967-0645(02)00003-6.
+> Takahashi, Taro & Sutherland, Stewart & Sweeney, Colm & Poisson, Alain
+> & Metzl, Nicolas & Tilbrook, Bronte & Bates, Nicholas & Wanninkhof,
+> Rik & Feely, Richard & Chris, Sabine & Olafsson, Jon & Nojiri,
+> Yukihiro. (2002). Global sea-air CO2 flux based on climatological
+> surface ocean pCO2, and seasonal biological and temperature effects.
+> Deep Sea Research Part II: Topical Studies in Oceanography. 49.
+> 1601-1622. 10.1016/S0967-0645(02)00003-6.
 
 ## Read Data
 
-Note that the original time coordinate here is in UTC, not local time. But by
-default, read_csv() interprets times according to the locale, here Eastern
-Standard Time or Eastern Daylight Time, depending on time of year.  I have not
-found an easy way to alter that behavior, but the force_tz() function in
-lubridate can fix it.
+Note that the original time coordinate here is in UTC, not local time.
+But by default, read\_csv() interprets times according to the locale,
+here Eastern Standard Time or Eastern Daylight Time, depending on time
+of year. I have not found an easy way to alter that behavior, but the
+force\_tz() function in lubridate can fix it.
 
-```{r load_data} 
+``` r
 all_data <- read_csv(fpath,
                      col_types = cols(dd = col_integer(), 
                                       doy = col_integer(),
@@ -120,17 +192,18 @@ all_data <- read_csv(fpath,
                                 `11` = 'Fall',
                                 `12` = 'Winter'
                                 ))
-
 ```
 
-
 # Prepare Tidal Data
+
 ## Load Tides Data
-Here we are dealing with NOAA's API.  We downloaded the data in "local standard
-time", but we face the same problem we did importing temporal data for time of
-day (above).  The function read_csv implicitly imports time data in local clock
-time.  We need to covert to Standard Time.
-```{r load_tide_data}
+
+Here we are dealing with NOAA’s API. We downloaded the data in “local
+standard time”, but we face the same problem we did importing temporal
+data for time of day (above). The function read\_csv implicitly imports
+time data in local clock time. We need to covert to Standard Time.
+
+``` r
 fn = 'portland_HiLo_tides.csv'
 fpath <- file.path(sibling,fn)
 
@@ -144,21 +217,20 @@ tide_data <- read_csv(fpath,
 ```
 
 ## Data Correction
-The tide data downloaded from the NOAA API lacks tide entries for leap day in
-2016. Looking data up on the (NOAA page for the Portland Tide
-Gage)[https://tidesandcurrents.noaa.gov/waterlevels.html?id=8418150&units=standard&bdate=20160229&edate=20160229&timezone=LST&datum=MLLW&interval=hl&action=]
-for the Portland tide station, we find that High and low tides on that day were
-(local standard time):
 
-Level | Time  | Elevation
-______|_______|__________
-  HH  | 03:00 | 9.3
-  L   | 09:24 | 1.32
-  H   | 15:30 | 8.48
-  LL  | 21:30 | 1.15
-  
+The tide data downloaded from the NOAA API lacks tide entries for leap
+day in 2016. Looking data up on the (NOAA page for the Portland Tide
+Gage)\[<https://tidesandcurrents.noaa.gov/waterlevels.html?id=8418150&units=standard&bdate=20160229&edate=20160229&timezone=LST&datum=MLLW&interval=hl&action=>\]
+for the Portland tide station, we find that High and low tides on that
+day were (local standard time):
+
+Level \| Time \| Elevation
+\_\_\_\_\_\_\|\_\_\_\_\_\_\_\|\_\_\_\_\_\_\_\_\_\_ HH \| 03:00 \| 9.3 L
+\| 09:24 \| 1.32 H \| 15:30 \| 8.48 LL \| 21:30 \| 1.15
+
 We add those to the tides data by hand.
-```{r data_correction}
+
+``` r
 tide_data <- tide_data %>%
   add_row (stdtime = ISOdatetime(2016,2,29,3,0,0, tz = 'Etc/GMT+5'),
            wl = 9.3, type = 'HH', .after=1639) %>%
@@ -171,11 +243,12 @@ tide_data <- tide_data %>%
 ```
 
 ## Daily Amplitudes
-Next, we calculate the observed daily tidal range for each day in the study 
-period.  We use this later to analyze the impact of tidal amplitude on OA 
-parameters.
 
-```{r daily_amplitude}
+Next, we calculate the observed daily tidal range for each day in the
+study period. We use this later to analyze the impact of tidal amplitude
+on OA parameters.
+
+``` r
 amplitude_data <- tide_data %>%
   mutate(d = as.Date(stdtime)) %>%
   pivot_wider(names_from = type, values_from = wl) %>%
@@ -189,9 +262,9 @@ amplitude_data <- tide_data %>%
   mutate(range = ifelse(is.na(hh), h, hh) - ifelse(is.na(ll),l,ll))
 ```
 
-We also need to calculate daily medians of the OA data parameters. 
+We also need to calculate daily medians of the OA data parameters.
 
-```{r daily_medians}
+``` r
 tmp <- all_data %>%
   mutate(d = as.Date(stdtime)) %>%
   group_by(d) %>%
@@ -204,20 +277,23 @@ rm(tmp)
 ```
 
 ## Calculate the Time Since High Tide
-We use a nifty function provided in base R called "findInterval."
 
-You might think of findInterval() it as a function that assigns values to values 
-in the first list to bins defined by values in the second list.
+We use a nifty function provided in base R called “findInterval.”
 
-For our use, we put the list of all times in the first parameter, and the list
-of ONLY high tides in the second parameter.  The function will figure out which
-interval (defined by values in the second list, our high tides) each value in
-the first list belongs to.  The function returns a list of the INDEXES of the
-"closest but smaller" value in the second list. We then use those indexes to
-look up the times associated with those indexes, matching each observation with
-the time of the previous high tide.
+You might think of findInterval() it as a function that assigns values
+to values in the first list to bins defined by values in the second
+list.
 
-```{r time_since_high}
+For our use, we put the list of all times in the first parameter, and
+the list of ONLY high tides in the second parameter. The function will
+figure out which interval (defined by values in the second list, our
+high tides) each value in the first list belongs to. The function
+returns a list of the INDEXES of the “closest but smaller” value in the
+second list. We then use those indexes to look up the times associated
+with those indexes, matching each observation with the time of the
+previous high tide.
+
+``` r
 hightide_data <- tide_data %>%
   filter(type =='H' | type == 'HH')
 
@@ -231,11 +307,12 @@ tidal_data <- all_data %>%
 ```
 
 ## Deviations From Average Within a Tidal Cycle
-Finally, we need to calculate how much each observation differs from the average
-value of all observations that have occurred since the prior high tide.  We can
-do that based on the tide indexes too.
 
-```{r deviations_from_tidal_cycle_average}
+Finally, we need to calculate how much each observation differs from the
+average value of all observations that have occurred since the prior
+high tide. We can do that based on the tide indexes too.
+
+``` r
 tidal_data <- tidal_data %>%
   group_by(tideindex) %>%
   
@@ -260,17 +337,24 @@ tidal_data <- tidal_data %>%
 ```
 
 # Tidal Graphics
-## PCO~2~ GAMM Model with Autocorrelation
+
+## PCO<sub>2</sub> GAMM Model with Autocorrelation
+
 This took about 12 to 25 minutes to run.
-```{r gamm_pco2, cache = TRUE} 
+
+``` r
 system.time(pco2_gam <- gamm(co2_corr_res ~  s(minssincehigh, 
                                                by = Season, bs='cc', k=6),
                  correlation = corAR1(form = ~ 1 | Season),  # we run out of memory if we don't use a grouping
                  data = tidal_data))
 ```
 
+    ##    user  system elapsed 
+    ##  596.95  161.13  765.29
+
 ### Generate Predictions from the Model
-```{r predicts_co2}
+
+``` r
 newdat <- expand.grid( minssincehigh = seq(0, 12.5*60),
                     Season = c('Winter', 'Spring', 'Summer', 'Fall'))
 p <- predict(pco2_gam$gam, newdata = newdat, se.fit=TRUE)
@@ -279,9 +363,11 @@ newdat <- newdat %>%
 ```
 
 ### Create Ribbon Graphic
-The ribbon plot shows approximate 95% confidence intervals for the GAMM fits 
-by season.
-```{r co2_ribbon, fig.width = 4, fig.height = 4}
+
+The ribbon plot shows approximate 95% confidence intervals for the GAMM
+fits by season.
+
+``` r
 ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) + #geom_line() +
   geom_ribbon(aes(ymin = pred-(1.96*se),
                   ymax = pred+(1.96*se),
@@ -300,13 +386,18 @@ ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) + #geom_line() +
   xlab('Hours since High Tide') +
   ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), 
                         Difference~From~Tide~Cycle~Average)))
+```
 
+![](Revised_Graphics_Tidal_files/figure-gfm/co2_ribbon-1.png)<!-- -->
+
+``` r
 ggsave('figures/pco2_tidal_seasons.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
 
 ### Alternate Graphic with Lines
-```{r co2_lines, fig.width = 4, fig.height = 4}
+
+``` r
 ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
   geom_line(aes(y = pred, color = Season), lwd = 1.5) +
   
@@ -322,21 +413,32 @@ ggplot(newdat, aes(x=minssincehigh, y=pred)) +
   xlab('Hours Since High Tide') +
   ylab(expression (atop(Corrected~pCO[2]~(mu*Atm), 
                         Difference~From~Tide~Cycle~Average)))
+```
 
+![](Revised_Graphics_Tidal_files/figure-gfm/co2_lines-1.png)<!-- -->
+
+``` r
 ggsave('figures/pco2_tidal_seasons_lines.pdf', device = cairo_pdf, width = 4, height = 4)
 ```
 
 ## pH GAMM Model with Autocorrelation
-For some reason, the pH models run considerably faster, perhaps because of more missing data, making the data set smaller.
-```{r gamm_ph, cache = TRUE} 
+
+For some reason, the pH models run considerably faster, perhaps because
+of more missing data, making the data set smaller.
+
+``` r
 system.time(ph_gam <- gamm(ph_res ~  s(minssincehigh, by = Season, 
                                        bs='cc', k=6),
                  correlation = corAR1(form = ~ 1 | Season),  # we run out of memory if we don't use a grouping
                  data = tidal_data))
 ```
 
+    ##    user  system elapsed 
+    ##  226.77   57.36  286.11
+
 ### Generate Predictions from the Model
-```{r predicts_ph}
+
+``` r
 newdat <- expand.grid(minssincehigh = seq(0, 12.5*60),
                     Season = c('Winter', 'Spring', 'Summer', 'Fall'))
 p <- predict(ph_gam$gam, newdata = newdat, se.fit=TRUE)
@@ -345,9 +447,11 @@ newdat <- newdat %>%
 ```
 
 ### Create Ribbon Graphic
-The ribbon plot shows approximate 95% confidence intervals for the GAMM fits by 
-season.
-```{r ph_ribbon, fig.width = 4, fig.height = 4}
+
+The ribbon plot shows approximate 95% confidence intervals for the GAMM
+fits by season.
+
+``` r
 ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) +
   geom_ribbon(aes(ymin = pred-(1.96*se),
                   ymax = pred+(1.96*se),
@@ -365,13 +469,18 @@ ggplot(newdat, aes(x=minssincehigh, y=pred, color = Season)) +
   
   xlab('Hours since High Tide') +
   ylab(expression (atop(pH, Difference~From~Tide~Cycle~Average)))
-  
+```
+
+![](Revised_Graphics_Tidal_files/figure-gfm/ph_ribbon-1.png)<!-- -->
+
+``` r
 ggsave('figures/ph_tidal_seasons.pdf', device = cairo_pdf, width = 4, height = 4)
 #ggsave('figures/ph_tidal_seasons.png', type = 'cairo', width = 4, height = 4)
 ```
 
 ### Alternate Graphic with Lines
-```{r ph_lines, fig.width = 4, fig.height = 4}
+
+``` r
 ggplot(newdat, aes(x=minssincehigh, y=pred)) + 
   geom_line(aes(y = pred, color = Season), lwd = 1.5) +
   
@@ -386,8 +495,11 @@ ggplot(newdat, aes(x=minssincehigh, y=pred)) +
   
   xlab('Hours Since High Tide') +
   ylab(expression (atop(pH, Difference~From~Tide~Cycle~Average)))
+```
 
+![](Revised_Graphics_Tidal_files/figure-gfm/ph_lines-1.png)<!-- -->
+
+``` r
 ggsave('figures/ph_tidal_seasons_lines.pdf', 
        device = cairo_pdf, width = 4, height = 4)
 ```
-
