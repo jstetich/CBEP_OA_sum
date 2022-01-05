@@ -1,7 +1,7 @@
 # Acidification Data
 ## `CascoBayOAData.csv`
 
-This data contains combined data from the UNH-managed OA monitoting station
+This data contains combined data from the UNH-managed OA monitoring station
 at the SMCC Pier, in South Portland. It includes data from 2015 through 2018.
 The nominally hourly data series are incomplete because of equipment
 maintenance, malfunctions, and rejection of data during QA/QC.
