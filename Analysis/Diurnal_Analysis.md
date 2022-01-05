@@ -105,7 +105,7 @@ theme_set(theme_cbep())
 
 # Color Palette
 
-For seasonal displays This is just a lists, not a function.
+For seasonal displays, this is just a list, not a function.
 
 ``` r
 season_palette = c(cbep_colors()[1],
@@ -866,7 +866,7 @@ We also tried running a GAMM with an autocorrelation function set up to
 depend on an hourly time stamp, but it, too took too much memory, and
 crashed.
 
-The simple autocorrelation function , which looks for correlations with
+The simple autocorrelation function, which looks for correlations with
 successive observations (ignoring any recorded time coordinates), would
 be identical to one based on a time stamp, IF there were no missing
 values.
